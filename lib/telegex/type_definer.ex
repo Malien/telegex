@@ -155,10 +155,11 @@ defmodule Telegex.TypeDefiner do
         end
       end
 
+      # Define Jason.Encoder only Jason is available.
       if function_exported?(Jason, :__info__, 1) do
         # 自定义编码过程，去掉所有的 nil 字段
         # Even if the user sets json_library to something other than Jason, having
-        # this protocol implementation is harmless. 
+        # this protocol implementation is harmless.
         defimpl Jason.Encoder, for: __MODULE__.unquote(name) do
           def encode(struct, opts) do
             struct
@@ -170,9 +171,8 @@ defmodule Telegex.TypeDefiner do
         end
       end
 
+      # Define JSON.Encoder only if we are running on Elixir 1.18 (which defines JSON module)
       if function_exported?(JSON, :__info__, 1) do
-        # Even if the user isn't running on Elixir 1.18+, having this protocol 
-        # implementation is harmless.
         defimpl JSON.Encoder, for: __MODULE__.unquote(name) do
           def encode(struct, encoder) do
             struct
