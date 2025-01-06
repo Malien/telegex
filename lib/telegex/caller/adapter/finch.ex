@@ -19,7 +19,8 @@ defmodule Telegex.Caller.Adapter.Finch do
     build_args =
       case try_build_multipart(params, attachment_fields) do
         :none ->
-          json_body = params |> Enum.into(%{}) |> Jason.encode!()
+          json_library = Application.fetch_env!(:telegex, :json_library)
+          json_body = params |> Enum.into(%{}) |> json_library.encode!()
 
           [:post, url, [@json_header], json_body]
 
@@ -168,7 +169,8 @@ defmodule Telegex.Caller.Adapter.Finch do
     Enum.reduce(without_attachments_params, multipart, fn {key, value}, updated_multipart ->
       cond do
         is_map(value) or is_list(value) ->
-          add_part(updated_multipart, text_field_part(Jason.encode!(value), key))
+          json_library = Application.fetch_env!(:telegex, :json_library)
+          add_part(updated_multipart, text_field_part(json_library.encode!(value), key))
 
         is_binary(value) ->
           add_part(updated_multipart, text_field_part(value, key))

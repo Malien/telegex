@@ -197,10 +197,19 @@ if Mix.env() in [:dev, :test] do
 
       doc_map = %{types: all_types, union_types: all_union_types, methods: all_methods}
 
-      json = Jason.encode!(doc_map, pretty: true)
+      json = json_encode!(doc_map)
 
       Mix.Generator.create_file("priv/bot_api_doc.json", json, force: true)
     end
+
+    defp json_encode!(data, library \\ Application.fetch_env!(:telegex, :json_library))
+
+    # Both Jason and Poison support pretty-printing options
+    defp json_encode!(data, libarary) when libarary in [Jason, Poison],
+      do: libarary.encode!(data, pretty: true)
+
+    # For anything else (like built-in Elixir 1.18 JSON), let's stick to encode!/1
+    defp json_encode!(data, libarary), do: libarary.encode!(data)
 
     defp parse_sections(nodes, tag, i \\ 0, sections \\ []) do
       current = Enum.at(nodes, i)

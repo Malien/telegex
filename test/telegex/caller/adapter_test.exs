@@ -15,7 +15,7 @@ defmodule Telegex.Caller.AdapterTest do
 
     r = call("getMe")
 
-    assert match?({:ok, %{is_bot: true}}, r)
+    assert match?({:ok, %{"is_bot" => true}}, r)
   end
 
   test "Adapter.HTTPoison error" do
@@ -31,7 +31,7 @@ defmodule Telegex.Caller.AdapterTest do
 
     r = call("getMe")
 
-    assert match?({:ok, %{is_bot: true}}, r)
+    assert match?({:ok, %{"is_bot" => true}}, r)
   end
 
   test "Adapter.Finch error" do

@@ -10,12 +10,12 @@ defmodule Telegex.HelperTest do
   test "most_repeated_fields_type/2" do
     # 测试找出与数据有最多字段重复的具体类型
     map = %{
-      type: "audio",
-      id: 1_231_032_181,
-      audio_file_id: "CQACAgQAAxkBAAIBXV6ZQZ3Z33Z3Z3Z3Z3Z3Z3Z3Z3Z3AAEcBA",
-      caption: "test audio",
-      parse_mode: "MarkdownV2",
-      caption_entities: []
+      "type" => "audio",
+      "id" => 1_231_032_181,
+      "audio_file_id" => "CQACAgQAAxkBAAIBXV6ZQZ3Z33Z3Z3Z3Z3Z3Z3Z3Z3Z3AAEcBA",
+      "caption" => "test audio",
+      "parse_mode" => "MarkdownV2",
+      "caption_entities" => []
     }
 
     assert most_repeated_fields_type(map, [
@@ -24,9 +24,9 @@ defmodule Telegex.HelperTest do
            ]) == {0, Telegex.Type.InlineQueryResultCachedAudio}
 
     map = %{
-      message_id: 1001,
-      date: 101,
-      text: "Hello!"
+      "message_id" => 1001,
+      "date" => 101,
+      "text" => "Hello!"
     }
 
     assert most_repeated_fields_type(map, [:boolean, Telegex.Type.Message]) ==
@@ -41,7 +41,7 @@ defmodule Telegex.HelperTest do
     assert typedmap(1.25, :float) == 1.25
 
     # 测试数组类型
-    assert typedmap([%{update_id: 1}, %{update_id: 2}], %ArrayType{elem_type: Update}) ==
+    assert typedmap([%{"update_id" => 1}, %{"update_id" => 2}], %ArrayType{elem_type: Update}) ==
              [
                %Update{update_id: 1},
                %Update{update_id: 2}
@@ -51,9 +51,9 @@ defmodule Telegex.HelperTest do
     typed_data =
       typedmap(
         %{
-          message_id: 1001,
-          date: 101,
-          text: "Hello!"
+          "message_id" => 1001,
+          "date" => 101,
+          "text" => "Hello!"
         },
         %UnionType{types: [:boolean, Message]}
       )
@@ -65,25 +65,44 @@ defmodule Telegex.HelperTest do
     typed_data =
       typedmap(
         %{
-          status: "creator",
-          is_anonymous: false,
-          user: %{id: 1001, is_bot: true, first_name: "Bob"}
+          "status" => "creator",
+          "is_anonymous" => false,
+          "user" => %{"id" => 1001, "is_bot" => true, "first_name" => "Bob"}
         },
         Telegex.Type.ChatMember
       )
 
     # 测试联合类型模块（有基础相关性的联合类型）
     assert match?(%ChatMemberOwner{}, typed_data)
+
+    typed_data = typedmap(%{
+      "type" => "commands",
+      "text" => "Hello!",
+      "web_app" => %{
+        "url" => "https://example.com",
+      }
+    }, Telegex.Type.MenuButtonWebApp)
+
+    assert match?(%Telegex.Type.MenuButtonWebApp{
+      type: "commands",
+      text: "Hello!",
+      web_app: %Telegex.Type.WebAppInfo{
+        url: "https://example.com"
+      }
+    }, typed_data)
+
+    typed_data = typedmap(%{"type" => "default"}, Telegex.Type.MenuButton)
+    assert match?(%Telegex.Type.MenuButtonDefault{type: "default"}, typed_data)
   end
 
   test "warning" do
     # 测试最终类型的字段列表不能完全抵消返回的数据的字段列表
     fun = fn ->
       map = %{
-        unkown_field: :unkown_value,
-        message_id: 1001,
-        date: 101,
-        text: "Hello!"
+        "unkown_field" => :unkown_value,
+        "message_id" => 1001,
+        "date" => 101,
+        "text" => "Hello!"
       }
 
       typed_data = typedmap(map, %UnionType{types: [:boolean, Telegex.Type.Message]})
@@ -99,9 +118,9 @@ defmodule Telegex.HelperTest do
       typed_data =
         typedmap(
           %{
-            status: "unkown_value",
-            is_anonymous: false,
-            user: %{id: 1001, is_bot: true, first_name: "Bob"}
+            "status" => "unkown_value",
+            "is_anonymous" => false,
+            "user" => %{"id" => 1001, "is_bot" => true, "first_name" => "Bob"}
           },
           Telegex.Type.ChatMember
         )

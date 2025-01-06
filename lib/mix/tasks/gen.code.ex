@@ -8,30 +8,36 @@ defmodule Mix.Tasks.Gen.Code do
   @base_module Telegex.Type
 
   def run(_args) do
-    doc_json = Jason.decode!(File.read!("priv/bot_api_doc.json"), keys: :atoms)
+    json_library = Application.fetch_env!(:telegex, :json_library)
+    doc_json = json_library.decode!(File.read!("priv/bot_api_doc.json"))
 
     type_args =
-      Enum.map(doc_json.types, fn type ->
-        %{type | fields: build_fileds_string(type.fields)}
+      Enum.map(doc_json["types"], fn type ->
+        %{
+          name: type["name"],
+          description: type["description"],
+          fields: build_fileds_string(type["fields"]),
+          fixed: type["fixed"]
+        }
       end)
 
     union_types =
-      Enum.map(doc_json.union_types, fn ut ->
+      Enum.map(doc_json["union_types"], fn ut ->
         %{
-          name: ut.name,
-          description: ut.description,
-          types: build_utypes_string(ut.types),
-          discriminant: build_discriminant_string(ut.types, doc_json.types)
+          name: ut["name"],
+          description: ut["description"],
+          types: build_utypes_string(ut["types"]),
+          discriminant: build_discriminant_string(ut["types"], doc_json["types"])
         }
       end)
 
     apis =
-      Enum.map(doc_json.methods, fn a ->
+      Enum.map(doc_json["methods"], fn a ->
         %{
-          name: a.name,
-          description: a.description,
-          parameters: build_api_paramaters_string(a.parameters),
-          result_type: build_ftype_string(a.result_type)
+          name: a["name"],
+          description: a["description"],
+          parameters: build_api_paramaters_string(a["parameters"]),
+          result_type: build_ftype_string(a["result_type"])
         }
       end)
 
@@ -60,10 +66,10 @@ defmodule Mix.Tasks.Gen.Code do
   def build_fileds_string(fields) do
     Enum.map(fields, fn f ->
       %{
-        name: String.to_atom(f.name),
-        type: build_ftype(f.type),
-        optional: f.optional,
-        description: f.description
+        name: String.to_atom(f["name"]),
+        type: build_ftype(f["type"]),
+        optional: f["optional"],
+        description: f["description"]
       }
     end)
     |> Macro.escape()
@@ -148,10 +154,10 @@ defmodule Mix.Tasks.Gen.Code do
   defp build_api_paramaters_string(parameters) do
     Enum.map(parameters, fn p ->
       %{
-        name: String.to_atom(p.name),
-        type: build_api_ptype(p.type),
-        required: p.required,
-        description: p.description
+        name: String.to_atom(p["name"]),
+        type: build_api_ptype(p["type"]),
+        required: p["required"],
+        description: p["description"]
       }
     end)
     |> Macro.escape()
@@ -167,13 +173,13 @@ defmodule Mix.Tasks.Gen.Code do
     discriminant =
       Enum.reduce(union_types, %Discriminator{mapping: %{}}, fn tname, discriminant ->
         case find_type(tname, types) do
-          %{fixed: fixed} ->
+          %{"fixed" => fixed} ->
             mapping = discriminant.mapping
 
-            pointing_types = Map.get(mapping, fixed.value, []) ++ [build_ftype(tname)]
-            mapping = Map.put(mapping, fixed.value, pointing_types)
+            pointing_types = Map.get(mapping, fixed["value"], []) ++ [build_ftype(tname)]
+            mapping = Map.put(mapping, fixed["value"], pointing_types)
 
-            %{discriminant | field: String.to_atom(fixed.field), mapping: mapping}
+            %{discriminant | field: String.to_atom(fixed["field"]), mapping: mapping}
 
           _ ->
             discriminant
@@ -190,6 +196,6 @@ defmodule Mix.Tasks.Gen.Code do
   end
 
   defp find_type(tname, types) do
-    Enum.find(types, fn %{name: name} -> name == tname end)
+    Enum.find(types, fn %{"name" => name} -> name == tname end)
   end
 end

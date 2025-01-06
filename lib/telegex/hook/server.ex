@@ -13,7 +13,11 @@ if Code.ensure_loaded?(Plug) do
     end
 
     plug :match
-    plug Plug.Parsers, parsers: [:json], json_decoder: {Jason, :decode!, [[keys: :atoms]]}
+
+    plug Plug.Parsers,
+      parsers: [:json],
+      json_decoder: {Application.compile_env!(:telegex, :json_library), :decode!, []}
+
     plug :dispatch
 
     require Logger
@@ -84,9 +88,11 @@ if Code.ensure_loaded?(Plug) do
     end
 
     defp resp_json(conn, map) do
+      json_library = Application.fetch_env!(:telegex, :json_library)
+
       conn
       |> put_resp_content_type("application/json")
-      |> send_resp(200, Jason.encode!(map))
+      |> send_resp(200, json_library.encode!(map))
     end
   end
 end

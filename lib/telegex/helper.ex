@@ -13,7 +13,7 @@ defmodule Telegex.Helper do
   @spec typedmap(any, datatype) :: any
   def typedmap(nil, _), do: nil
 
-  def typedmap(map, %ArrayType{elem_type: type}) do
+  def typedmap(map, %ArrayType{elem_type: type}) when is_list(map) do
     Enum.map(map, fn item -> typedmap(item, type) end)
   end
 
@@ -31,22 +31,24 @@ defmodule Telegex.Helper do
     end
   end
 
-  def typedmap(map, type) when type in [:integer, :string, :boolean, :float] do
-    map
-  end
+  def typedmap(value, :integer) when is_integer(value), do: value
+  def typedmap(value, :string) when is_binary(value), do: value
+  def typedmap(true, :boolean), do: true
+  def typedmap(false, :boolean), do: false
+  def typedmap(value, :float) when is_float(value), do: value
 
-  def typedmap(map, type) do
+  def typedmap(map, type) when is_map(map) and is_atom(type) do
     _typedmap(type.__meta__(), map, type)
   end
 
   # 联合类型根据 discriminant 中字段值执行转换
-  defp _typedmap(:union, map, type) do
+  defp _typedmap(:union, map, type) when is_map(map) do
     case type.__discriminant__() do
       nil ->
         map
 
       discriminant ->
-        value = map[discriminant.field]
+        value = map[Atom.to_string(discriminant.field)]
 
         case discriminant.mapping[value] do
           nil ->
@@ -71,13 +73,14 @@ defmodule Telegex.Helper do
     end
   end
 
-  defp _typedmap(:type, map, type) do
-    references = type.__references__()
+  defp _typedmap(:type, map, type) when is_map(map) do
+    atomized = for key <- type.__keys__(), into: %{} do
+      {key, map[Atom.to_string(key)]}
+    end
 
-    map =
-      Enum.reduce(references, map, fn {name, type}, map ->
-        Map.put(map, name, typedmap(map[name], type))
-      end)
+    map = for {name, type} <- type.__references__(), into: atomized do
+      {name, typedmap(atomized[name], type)}
+    end
 
     struct(type, map)
   end
@@ -112,7 +115,8 @@ defmodule Telegex.Helper do
   end
 
   defp keys_left_count(keys, type) do
-    length(keys -- type.__keys__())
+    string_keys = Enum.map(type.__keys__(), &Atom.to_string/1)
+    Enum.count(keys, & &1 not in string_keys)
   end
 
   defp conditional_warning({left_count, type}) when left_count > 0 do

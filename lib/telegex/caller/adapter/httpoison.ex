@@ -9,7 +9,8 @@ defmodule Telegex.Caller.Adapter.HTTPoison do
   @impl true
   def call(method, params, opts) do
     url = build_url(method)
-    json_body = params |> Enum.into(%{}) |> Jason.encode!()
+    json_library = Application.fetch_env!(:telegex, :json_library)
+    json_body = params |> Enum.into(%{}) |> json_library.encode!()
 
     url |> request(json_body, opts) |> parse_response()
   end

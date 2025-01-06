@@ -155,14 +155,32 @@ defmodule Telegex.TypeDefiner do
         end
       end
 
-      # 自定义编码过程，去掉所有的 nil 字段
-      defimpl Jason.Encoder, for: __MODULE__.unquote(name) do
-        def encode(struct, opts) do
-          struct
-          |> Map.from_struct()
-          |> Enum.filter(fn {_, v} -> v != nil end)
-          |> Enum.into(%{})
-          |> Jason.encode!()
+      if function_exported?(Jason, :__info__, 1) do
+        # 自定义编码过程，去掉所有的 nil 字段
+        # Even if the user sets json_library to something other than Jason, having
+        # this protocol implementation is harmless. 
+        defimpl Jason.Encoder, for: __MODULE__.unquote(name) do
+          def encode(struct, opts) do
+            struct
+            |> Map.from_struct()
+            |> Enum.filter(fn {_, v} -> v != nil end)
+            |> Enum.into(%{})
+            |> Jason.encode!()
+          end
+        end
+      end
+
+      if function_exported?(JSON, :__info__, 1) do
+        # Even if the user isn't running on Elixir 1.18+, having this protocol 
+        # implementation is harmless.
+        defimpl JSON.Encoder, for: __MODULE__.unquote(name) do
+          def encode(struct, encoder) do
+            struct
+            |> Map.from_struct()
+            |> Enum.filter(fn {_, v} -> v != nil end)
+            |> Enum.into(%{})
+            |> JSON.encode!(encoder)
+          end
         end
       end
     end

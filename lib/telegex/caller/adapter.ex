@@ -43,9 +43,15 @@ defmodule Telegex.Caller.Adapter do
 
   @spec struct_response(String.t() | map) :: Response.t()
   def struct_response(json) when is_binary(json) do
-    data = Jason.decode!(json, keys: :atoms)
+    json_library = Application.fetch_env!(:telegex, :json_library)
+    data = json_library.decode!(json)
 
-    struct(Response, data)
+    %Response{
+      ok: data["ok"],
+      result: data["result"],
+      error_code: data["error_code"],
+      description: data["description"]
+    }
   end
 
   def struct_response(%{ok: ok, error_code: error_code, description: description}) do
