@@ -70,7 +70,7 @@ defmodule Telegex.MixProject do
       {:bandit, "~> 1.5", optional: true, only: [:dev, :test]},
       {:floki, "~> 0.36.3", only: [:dev, :test]},
       {:typed_struct, "~> 0.3.0"},
-      {:jason, "~> 1.4"}
+      {:jason, "~> 1.4", optional: true}
     ]
   end
 
